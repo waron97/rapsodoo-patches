@@ -1,0 +1,14 @@
+body:has(.B2wCpqEditProcessRoot) {
+    .b2w-root {
+        overflow: hidden;
+        max-height: 100vh;
+    }
+
+    .b2w-root-main {
+        overflow: hidden;
+    }
+
+    .B2wModelerRoot .content {
+        min-height: var(--corrected-min-height);
+    }
+}
