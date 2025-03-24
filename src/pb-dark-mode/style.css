@@ -1,0 +1,106 @@
+body:has(.B2wCpqEditProcessRoot) {
+    --dark-bg: #00012e;
+    --dark-pop: #000148;
+    --light: #f4f4f4;
+    --dark-lighter: #000151;
+
+    .b2w-root {
+        background: var(--dark-bg);
+    }
+
+    .header {
+        .process {
+            color: var(--light);
+        }
+
+        .processName {
+            font-weight: bold;
+            background-color: var(--light);
+            padding: 4px;
+            border-radius: 6px;
+            color: var(--bg-pop) !important;
+        }
+    }
+
+    .B2wCpqPortalHeaderRoot {
+        background-color: transparent;
+    }
+
+    .main-title {
+        color: var(--light);
+    }
+
+    .B2wCpqSidebarRoot {
+        box-shadow: none;
+    }
+
+    .group::before {
+        color: var(--light);
+    }
+
+    .B2wCpqEditProcessRoot {
+        background-color: var(--dark-bg) !important;
+        box-shadow: none !important;
+    }
+
+    .B2wCpqSidebarRoot {
+        background-color: var(--dark-bg) !important;
+    }
+
+    .djs-palette {
+        background-color: var(--dark-bg) !important;
+
+        .entry {
+            background: var(--light);
+            margin: 2px;
+            border-radius: 4px;
+        }
+    }
+
+    #js-drop-zone {
+        background: var(--dark-bg) !important;
+    }
+
+    tspan {
+        fill: var(--light);
+        font-weight: bold;
+    }
+
+    svg.new-parent.hover {
+        /* causes problem when hovering while draggin a new element inside */
+        background: var(--dark-bg) !important;
+    }
+
+    ul.buttons {
+        background-color: var(--light);
+    }
+
+    .B2wModelerRoot .buttons li > a svg path,
+    .B2wModelerRoot .buttons li > a svg polygon {
+        fill: var(--dark-pop) !important;
+    }
+
+    #js-properties-panel {
+        * {
+            background-color: var(--dark-lighter);
+            color: var(--light);
+            border-color: var(--light);
+        }
+
+        h3 {
+            margin-top: 12px;
+            border-top: 1px solid var(--light);
+            padding-top: 12px;
+            width: 100%;
+
+            label {
+                font-size: 18px;
+                color: var(--dark-lighter) !important;
+                background-color: var(--light);
+                padding: 4px;
+                border-radius: 6px;
+                width: fit-content;
+            }
+        }
+    }
+}
