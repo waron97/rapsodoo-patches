@@ -70,8 +70,6 @@
     }
 
     function openModalWithInput() {
-        console.log('Opening modal');
-
         return new Promise((resolve, reject) => {
             // Create the modal container
             const modalContainer = document.createElement('div');
@@ -170,6 +168,7 @@
                             process.process_name,
                         );
                         window.location.href = `/process-builder/${process.guid}`;
+                        document.removeEventListener('keydown', handleKeydown);
                     } else {
                         alert('Process not found');
                     }
