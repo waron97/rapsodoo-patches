@@ -160,9 +160,16 @@ let pbFinderSetupDone = false;
                         localStorage.getItem('pb-processes') || '[]',
                     );
                     const pat = new RegExp(key, 'igm');
-                    const process = processes.find((p) =>
+                    let process = processes.find((p) =>
                         pat.test(p.document_id),
                     );
+
+                    if (!process) {
+                        process = processes.find((p) =>
+                            pat.test(p.process_name),
+                        );
+                    }
+
                     if (process) {
                         window.location.href = `/process-builder/${process.guid}`;
                     } else {
