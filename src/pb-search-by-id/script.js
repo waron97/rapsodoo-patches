@@ -1,4 +1,6 @@
 (function () {
+    const storageKey = 'pb-direct-search-history';
+
     function interceptFetchResponse() {
         const { fetch: originalFetch } = window;
         const processUrlPattern = /\/v1\/builder\/process$/gim;
@@ -69,8 +71,19 @@
         };
     }
 
+    function updateHistory(search) {
+        const prev = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const history = [search, ...prev].slice(0, 30);
+        localStorage.setItem(storageKey, JSON.stringify(history));
+    }
+
     function openModalWithInput() {
         return new Promise((resolve, reject) => {
+            let searchIndex = null;
+            const searchHistory = JSON.parse(
+                localStorage.getItem(storageKey) || '[]',
+            );
+
             // Create the modal container
             const modalContainer = document.createElement('div');
             modalContainer.style.cssText = `
@@ -105,6 +118,43 @@
             const inputField = document.createElement('input');
             inputField.type = 'text';
             inputField.style.width = '100%';
+
+            // Add event listeners for up/down arrow keys to navigate search history
+            inputField.addEventListener('keydown', (e) => {
+                // Only handle up/down keys and prevent default behavior
+                if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+                e.preventDefault();
+
+                // If no history, do nothing
+                if (!searchHistory.length) return;
+
+                if (e.key === 'ArrowUp') {
+                    // If not navigating yet or at beginning, start from most recent
+                    if (searchIndex === null) {
+                        searchIndex = 0;
+                    } else if (searchIndex < searchHistory.length - 1) {
+                        // Move to older entry if not at oldest entry
+                        searchIndex++;
+                    } else {
+                        // Already at oldest entry, do nothing
+                        return;
+                    }
+
+                    // Set input value to history item
+                    inputField.value = searchHistory[searchIndex];
+                } else if (e.key === 'ArrowDown') {
+                    // If not navigating or already at most recent, set empty and reset
+                    if (searchIndex === null || searchIndex === 0) {
+                        inputField.value = '';
+                        searchIndex = null;
+                    } else {
+                        // Move to more recent entry
+                        searchIndex--;
+                        inputField.value = searchHistory[searchIndex];
+                    }
+                }
+            });
+
             modalContent.appendChild(inputField);
 
             // Create the button
@@ -167,8 +217,10 @@
                             'b2w-search-value',
                             process.process_name,
                         );
-                        window.location.href = `/process-builder/${process.guid}`;
+
+                        updateHistory(key);
                         document.removeEventListener('keydown', handleKeydown);
+                        window.location.href = `/process-builder/${process.guid}`;
                     } else {
                         alert('Process not found');
                     }
