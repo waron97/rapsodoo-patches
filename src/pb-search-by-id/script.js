@@ -109,6 +109,15 @@
                 width: 300px;
             `;
 
+            // Add event listener to close modal on Escape key
+            document.addEventListener('keydown', function escapeHandler(e) {
+                if (e.key === 'Escape') {
+                    document.body.removeChild(modalContainer);
+                    document.removeEventListener('keydown', escapeHandler);
+                    reject('Modal dismissed');
+                }
+            });
+
             // Create the title
             const title = document.createElement('h2');
             title.textContent = 'Input process key';
