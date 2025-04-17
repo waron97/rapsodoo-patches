@@ -1,4 +1,6 @@
 (function () {
+    let searchWasRestored = false;
+
     async function runSearchHistory() {
         const inputNode = document
             .querySelector('b2w-input-search')
@@ -12,14 +14,12 @@
             .querySelector('b2w-accordion-container')
             ?.querySelector('.processCard');
 
-        window.pbRestoreSearchSetupDone = false;
-
         if (!inputNode || !searchButton || !processesLoaded) {
-            window.pbRestoreSearchSetupDone = false;
+            searchWasRestored = false;
             return;
         }
 
-        if (window.pbRestoreSearchSetupDone) {
+        if (searchWasRestored) {
             return;
         }
 
@@ -41,12 +41,6 @@
             sessionStorage.setItem('b2w-search-value', inputNode.value);
         });
     }
-
-    if (window.pbRestoreSearchSetupDone) {
-        return;
-    }
-
-    window.pbRestoreSearchSetupDone = true;
 
     const searchObserver = new MutationObserver(() => {
         runSearchHistory();
