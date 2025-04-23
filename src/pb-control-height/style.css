@@ -11,4 +11,8 @@ body:has(.B2wCpqEditProcessRoot) {
     .B2wModelerRoot .content {
         min-height: var(--corrected-min-height);
     }
+
+    #js-properties-panel {
+        max-width: 450px;
+    }
 }
