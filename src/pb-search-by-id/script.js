@@ -77,7 +77,7 @@
         localStorage.setItem(storageKey, JSON.stringify(history));
     }
 
-    function openModalWithInput() {
+    function openModalWithInput(processes) {
         return new Promise((resolve, reject) => {
             let searchIndex = null;
             const searchHistory = JSON.parse(
@@ -172,6 +172,134 @@
             button.style.marginTop = '10px';
             modalContent.appendChild(button);
 
+            // create suggestions area
+            const suggestionsArea = document.createElement('div');
+            suggestionsArea.style.cssText = `
+                margin-top: 10px;
+                max-height: 200px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                border-top: 1px solid #ddd;
+                padding-top: 10px;
+            `;
+            modalContent.appendChild(suggestionsArea);
+
+            // add suggestions listener
+            inputField.addEventListener('input', (evt) => {
+                // Clear existing suggestions
+                suggestionsArea.innerHTML = '';
+
+                const searchValue = evt.target.value.trim();
+                if (!searchValue) return;
+
+                // Find matching processes
+                const matchingProcesses = processes.filter((process) =>
+                    getIsMatch(searchValue, process),
+                );
+
+                // Limit to max 5 suggestions for better UX
+                const maxSuggestions = 5;
+                const processesToShow = matchingProcesses.slice(
+                    0,
+                    maxSuggestions,
+                );
+
+                // Create suggestion buttons
+                processesToShow.forEach((process) => {
+                    const suggestionBtn = document.createElement('button');
+                    suggestionBtn.type = 'button'; // Prevent form submission
+                    suggestionBtn.style.cssText = `
+                        text-align: left;
+                        padding: 8px 5px;
+                        margin: 0;
+                        background: none;
+                        border: none;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        width: 100%;
+                        display: flex;
+                        flex-direction: column;
+                    `;
+                    suggestionBtn.onmouseover = () => {
+                        suggestionBtn.style.backgroundColor = '#f0f0f0';
+                    };
+                    suggestionBtn.onmouseout = () => {
+                        suggestionBtn.style.backgroundColor = 'transparent';
+                    };
+
+                    // Clear the button text content first
+                    suggestionBtn.textContent = '';
+
+                    // Add Process ID line (smaller grey font)
+                    if (process.document_id) {
+                        const idElement = document.createElement('div');
+                        idElement.textContent = process.document_id;
+                        idElement.style.cssText = `
+                            font-size: 11px;
+                            color: #777;
+                            margin-bottom: 2px;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        `;
+                        suggestionBtn.appendChild(idElement);
+                    }
+
+                    // Add Process Name line (normal font)
+                    if (process.process_name) {
+                        const nameElement = document.createElement('div');
+                        nameElement.textContent = process.process_name;
+                        nameElement.style.cssText = `
+                            font-size: 14px;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        `;
+                        suggestionBtn.appendChild(nameElement);
+                    }
+
+                    // On click, fill the input with this value and submit
+                    suggestionBtn.addEventListener('click', () => {
+                        if (process.document_id) {
+                            inputField.value = process.document_id;
+                        } else if (process.process_name) {
+                            inputField.value = process.process_name;
+                        }
+                        // Submit the form
+                        button.click();
+                    });
+
+                    suggestionsArea.appendChild(suggestionBtn);
+                });
+
+                // Show a message if no matches found
+                if (processesToShow.length === 0) {
+                    const noMatchesMsg = document.createElement('div');
+                    noMatchesMsg.textContent = 'No matching processes found';
+                    noMatchesMsg.style.cssText = `
+                        padding: 5px;
+                        color: #777;
+                        font-style: italic;
+                    `;
+                    suggestionsArea.appendChild(noMatchesMsg);
+                }
+
+                // Show count if there are more matches than we're showing
+                if (matchingProcesses.length > maxSuggestions) {
+                    const countMsg = document.createElement('div');
+                    countMsg.textContent = `...and ${matchingProcesses.length - maxSuggestions} more matches`;
+                    countMsg.style.cssText = `
+                        padding: 5px;
+                        color: #777;
+                        font-style: italic;
+                        text-align: center;
+                    `;
+                    suggestionsArea.appendChild(countMsg);
+                }
+            });
+
             // Append the content to the container
             modalContainer.appendChild(modalContent);
 
@@ -202,22 +330,13 @@
     function handleKeydown(event) {
         if (event.ctrlKey && event.altKey && event.key === 'f') {
             event.preventDefault(); // Prevent default browser behavior
-
-            openModalWithInput()
+            const processes = JSON.parse(
+                localStorage.getItem('pb-processes') || '[]',
+            );
+            openModalWithInput(processes)
                 .then((key) => {
-                    const processes = JSON.parse(
-                        localStorage.getItem('pb-processes') || '[]',
-                    );
-                    const pat = new RegExp(key, 'igm');
-                    let process = processes.find((p) =>
-                        pat.test(p.document_id),
-                    );
-
-                    if (!process) {
-                        process = processes.find((p) =>
-                            pat.test(p.process_name),
-                        );
-                    }
+                    // Find process using advanced matching strategy
+                    const process = findBestMatchingProcess(processes, key);
 
                     if (process) {
                         // pb-restore-search rule will set search to this value
@@ -238,6 +357,117 @@
                     // Modal dismissed
                 });
         }
+    }
+
+    function getIsMatch(key, process) {
+        // Skip empty searches
+        if (!key.trim()) return false;
+
+        // 1. Try exact match on document_id (highest priority)
+        if (
+            process.document_id &&
+            process.document_id.toLowerCase() === key.toLowerCase()
+        ) {
+            return true;
+        }
+
+        // 2. Try exact match on process_name
+        if (
+            process.process_name &&
+            process.process_name.toLowerCase() === key.toLowerCase()
+        ) {
+            return true;
+        }
+
+        // 3. Try regex match on document_id
+        const pat = new RegExp(key, 'igm');
+        if (process.document_id && pat.test(process.document_id)) {
+            return true;
+        }
+
+        // 4. Try regex match on process_name
+        if (process.process_name && pat.test(process.process_name)) {
+            return true;
+        }
+
+        // 5. Try word-by-word matching (allows for words in between)
+        const searchWords = key
+            .toLowerCase()
+            .split(/\s+/)
+            .filter((w) => w.length > 0);
+
+        if (searchWords.length > 0 && process.process_name) {
+            const processNameLower = process.process_name.toLowerCase();
+
+            // Create a regex pattern with .* between words: "word1 word2" -> "word1.*word2.*"
+            const pattern = new RegExp(searchWords.join('.*'), 'i');
+
+            if (pattern.test(process.document_id)) {
+                return true;
+            }
+
+            return pattern.test(processNameLower);
+        }
+
+        return false;
+    }
+
+    // Advanced process matching with priority levels
+    function findBestMatchingProcess(processes, searchKey) {
+        // Skip empty searches
+        if (!searchKey.trim()) return null;
+
+        // 1. Try exact match on document_id (highest priority)
+        const exactDocMatch = processes.find(
+            (p) =>
+                p.document_id &&
+                p.document_id.toLowerCase() === searchKey.toLowerCase(),
+        );
+        if (exactDocMatch) return exactDocMatch;
+
+        // 2. Try exact match on process_name
+        const exactNameMatch = processes.find(
+            (p) =>
+                p.process_name &&
+                p.process_name.toLowerCase() === searchKey.toLowerCase(),
+        );
+        if (exactNameMatch) return exactNameMatch;
+
+        // 3. Try regex match on document_id
+        const pat = new RegExp(searchKey, 'igm');
+        const regexDocMatch = processes.find((p) => pat.test(p.document_id));
+        if (regexDocMatch) return regexDocMatch;
+
+        // 4. Try regex match on process_name
+        const regexNameMatch = processes.find((p) => pat.test(p.process_name));
+        if (regexNameMatch) return regexNameMatch;
+
+        // 5. Try word-by-word matching (allows for words in between)
+        const searchWords = searchKey
+            .toLowerCase()
+            .split(/\s+/)
+            .filter((w) => w.length > 0);
+
+        if (searchWords.length > 0) {
+            // Create a regex pattern with .* between words: "word1 word2" -> "word1.*word2.*"
+            const pattern = new RegExp(searchWords.join('.*'), 'i');
+
+            // First check document_id with pattern
+            const docIdMatch = processes.find(
+                (p) =>
+                    p.document_id && pattern.test(p.document_id.toLowerCase()),
+            );
+            if (docIdMatch) return docIdMatch;
+
+            // Then check process_name with pattern
+            return processes.find(
+                (p) =>
+                    p.process_name &&
+                    pattern.test(p.process_name.toLowerCase()),
+            );
+        }
+
+        return null;
     }
 
     window.pbFinderSetupDone = false;
